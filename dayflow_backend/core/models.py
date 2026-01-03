@@ -36,7 +36,9 @@ class User(AbstractUser):
     location = models.CharField(max_length=100, null=True, blank=True)
     joining_date = models.DateField(null=True, blank=True)
     paid_leave_balance = models.IntegerField(default=24, null=True, blank=True)
-    sick_leave_balance = models.IntegerField(default=12, null=True, blank=True)
+    sick_leave_balance = models.IntegerField(default=7, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    resume = models.FileField(upload_to='resumes/', null=True, blank=True)
     manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='team')
 
 class Attendance(models.Model):
@@ -54,6 +56,7 @@ class LeaveRequest(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     reason = models.TextField(null=True, blank=True)
+    attachment = models.FileField(upload_to='leave_docs/', null=True, blank=True)
     status = models.CharField(max_length=20, choices=LeaveStatus.choices, default=LeaveStatus.PENDING, null=True, blank=True)
     admin_comment = models.TextField(null=True, blank=True)
 
@@ -62,6 +65,7 @@ class Payroll(models.Model):
     month = models.DateField(null=True, blank=True)
     basic_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     hra = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+    standard_allowance = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     other_allowances = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     pf = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
