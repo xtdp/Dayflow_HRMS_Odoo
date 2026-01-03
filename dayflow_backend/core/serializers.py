@@ -5,6 +5,7 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True)
     class Meta:
         model = User
         fields = [
@@ -14,6 +15,9 @@ class UserSerializer(serializers.ModelSerializer):
             'paid_leave_balance', 'sick_leave_balance',
             'profile_picture', 'resume'
         ]
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+    
 
 class AttendanceSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source='employee.username', read_only=True)

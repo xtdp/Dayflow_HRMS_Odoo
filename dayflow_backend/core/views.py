@@ -1,16 +1,25 @@
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth import authenticate, get_user_model
-from .models import Attendance, LeaveRequest, Payroll
+from django_filters.rest_framework import DjangoFilterBackend
+from .permissions import IsAdminUser, IsOwnerOrAdmin
+from .models import User, Attendance, LeaveRequest, Payroll
 from .serializers import UserSerializer, AttendanceSerializer, LeaveSerializer, PayrollSerializer
+
 User = get_user_model()
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['username', 'email', 'employee_id']
+
+    def get_permissions(self):
+        if self.action in ['login']:
+            return [permissions.AllowAny()]
+        return [IsAdminUser()]
 
     @action(detail=False, methods=['post'])
     def login(self, request):
@@ -32,94 +41,43 @@ class UserViewSet(viewsets.ModelViewSet):
 class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all()
     serializer_class = AttendanceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        attendance = Attendance.objects.create(
-            employee=request.user,
-            date=data.get('date'),
-            check_in=data.get('check_in'),
-            check_out=data.get('check_out'),
-            work_hours=data.get('work_hours'),
-            extra_hours=data.get('extra_hours'),
-            status=data.get('status', 'ABSENT')
-        )
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return self.queryset.all()
+        return self.queryset.filter(employee=user)
 
-        serializer = self.get_serializer(attendance)
-        return Response(serializer.data)
-
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        data = request.data
-
-        instance.check_out = data.get('check_out', instance.check_out)
-        instance.work_hours = data.get('work_hours', instance.work_hours)
-        instance.extra_hours = data.get('extra_hours', instance.extra_hours)
-        instance.status = data.get('status', instance.status)
-        instance.save()
-        
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def perform_create(self, serializer):
+        serializer.save(employee=self.request.user)
 
 
 class LeaveViewSet(viewsets.ModelViewSet):
     queryset = LeaveRequest.objects.all()
     serializer_class = LeaveSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdmin]
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        
-        leave_request = LeaveRequest.objects.create(
-            employee=request.user,
-            leave_type=data.get('leave_type'),
-            start_date=data.get('start_date'),
-            end_date=data.get('end_date'),
-            reason=data.get('reason'),
-            status='PENDING'
-        )
-        
-        serializer = self.get_serializer(leave_request)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return self.queryset.all()
+        return self.queryset.filter(employee=user)
 
-    def update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        data = request.data
-        
-        instance.status = data.get('status', instance.status)
-        instance.admin_comment = data.get('admin_comment', instance.admin_comment)
-        instance.save()
-        
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+    def perform_create(self, serializer):
+        serializer.save(employee=self.request.user, status='PENDING')
 
 
 class PayrollViewSet(viewsets.ModelViewSet):
     queryset = Payroll.objects.all()
     serializer_class = PayrollSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsAdminUser]
 
-    def create(self, request, *args, **kwargs):
-        data = request.data
-        
-        employee_id = data.get('employee')
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'ADMIN':
+            return self.queryset.all()
+        return self.queryset.filter(employee=user)
 
-        try:
-            employee_obj = User.objects.get(id=employee_id)
-        except User.DoesNotExist:
-            return Response({"error": "Employee not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        payroll = Payroll.objects.create(
-            employee=employee_obj,
-            month=data.get('month'),
-            basic_salary=data.get('basic_salary', 0),
-            hra=data.get('hra', 0),
-            other_allowances=data.get('other_allowances', 0),
-            pf=data.get('pf', 0),
-            professional_tax=data.get('professional_tax', 0),
-            net_salary=data.get('net_salary', 0)
-        )
-        
-        serializer = self.get_serializer(payroll)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def perform_create(self, serializer):
+        serializer.save()
