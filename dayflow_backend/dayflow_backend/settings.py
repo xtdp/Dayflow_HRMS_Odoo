@@ -26,6 +26,7 @@ SECRET_KEY = 'django-insecure-sfp*lrp#9c5#bd(+j$h6hwx2*0wr$&s1_v#s6(1)s0m@7uyix=
 DEBUG = True
 
 ALLOWED_HOSTS = []
+AUTH_USER_MODEL = 'core.User'
 
 
 # Application definition
@@ -75,10 +76,21 @@ WSGI_APPLICATION = 'dayflow_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'dayflow_db',
+        'USER': 'dayflow_user',
+        'PASSWORD': '!@#$%^&*()',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

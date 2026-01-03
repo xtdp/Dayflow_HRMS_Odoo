@@ -1,0 +1,35 @@
+# --- Python / Django ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+*.sqlite3
+.env
+.venv
+env/
+venv/
+myenv/
+dist/
+build/
+*.egg-info/
+
+# --- Node.js / Next.js (Frontend) ---
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vercel
+
+# --- VS Code / System ---
+.vscode/
+.idea/
+Thumbs.db
