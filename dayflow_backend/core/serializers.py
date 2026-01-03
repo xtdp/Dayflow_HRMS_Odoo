@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from .models import Attendance, LeaveRequest, Payroll
 from datetime import date
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -276,14 +277,15 @@ class PayrollSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Validate payroll amounts"""
-        basic_salary = attrs.get('basic_salary', 0)
-        hra = attrs.get('hra', 0)
-        pf = attrs.get('pf', 0)
+        # Convert Decimal to float for calculations
+        basic_salary = float(attrs.get('basic_salary', 0))
+        hra = float(attrs.get('hra', 0))
+        pf = float(attrs.get('pf', 0))
         
         # Validate positive amounts
         for field in ['basic_salary', 'hra', 'standard_allowance', 
                      'other_allowances', 'pf', 'professional_tax']:
-            value = attrs.get(field, 0)
+            value = float(attrs.get(field, 0))
             if value < 0:
                 raise serializers.ValidationError({
                     field: "Amount cannot be negative"
