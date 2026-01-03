@@ -1,8 +1,22 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils import timezone
 
 # Create your models here.
+
+class UserManager(BaseUserManager):
+    def create_user(self, username, email=None, password=None, **extra_fields):
+        if not username: raise ValueError('Username is required')
+        user = self.model(username=username, email=self.normalize_email(email), **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'ADMIN')
+        return self.create_user(username, email, password, **extra_fields)
 
 class Role(models.TextChoices):
     ADMIN = 'ADMIN', 'Admin/HR'
@@ -41,6 +55,8 @@ class User(AbstractUser):
     resume = models.FileField(upload_to='resumes/', null=True, blank=True)
     manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='team')
 
+    objects = UserManager()
+
 class Attendance(models.Model):
     employee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='attendance', null=True, blank=True)
     date = models.DateField(default=timezone.now, null=True, blank=True)
@@ -70,3 +86,7 @@ class Payroll(models.Model):
     pf = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     professional_tax = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
     net_salary = models.DecimalField(max_digits=10, decimal_places=2, default=0, null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.net_salary = (self.basic_salary + self.hra) - (self.pf + self.professional_tax)
+        super().save(*args, **kwargs)
